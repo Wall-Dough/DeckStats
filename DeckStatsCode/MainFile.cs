@@ -30,7 +30,7 @@ public partial class MainFile : Node
     public class DeckStatsPatch
     {
         private static string _name = "DeckStats";
-        private static Control? _container;
+        private static PanelContainer? _container;
         private static RichTextLabel? _label;
         private static Hashtable _deckStats = new();
         private static PileType? _lastPileType;
@@ -66,10 +66,9 @@ public partial class MainFile : Node
         [HarmonyPatch("DisplayCards")]
         private static void BeforeDisplayCards(NDeckViewScreen __instance)
         {
-            Node parent = __instance.GetNode(new NodePath("CardGrid/ScrollContainer"));
-            if (_container != null && parent.HasNode(new NodePath(_name)))
+            if (_container != null && __instance.HasNode(new NodePath(_name)))
             {
-                parent.RemoveChild(_container);
+                __instance.RemoveChild(_container);
                 _container = null;
                 _label = null;
             }
@@ -93,7 +92,7 @@ public partial class MainFile : Node
         [HarmonyPatch(typeof(NCardGrid))]
         [HarmonyPatch("SetCards")]
         private static void BeforeSetCards(IReadOnlyList<CardModel> cardsToDisplay, PileType pileType,
-            List<SortingOrders> sortingPriority, Task? taskToWaitOn, NCardGrid __instance)
+            List<SortingOrders> sortingPriority, Task? taskToWaitOn)
         {
             _lastPileType = pileType;
             if (pileType != PileType.Deck)
@@ -182,7 +181,7 @@ public partial class MainFile : Node
 
         private static void CreateDeckStatsNode()
         {
-            _container = new Control();
+            _container = new PanelContainer();
             _container.SetName(_name);
             _label = new RichTextLabel();
             _label.SetFitContent(true);
@@ -242,6 +241,7 @@ public partial class MainFile : Node
 
         private static void LogAllChildren(Node parent)
         {
+            Logger.Info("All child nodes of:" + parent.GetPath());
             foreach (Node child in parent.GetChildren())
             {
                 Logger.Info("  " + child.GetName() + " (" + child.GetType().Name + ")");
@@ -253,15 +253,18 @@ public partial class MainFile : Node
         [HarmonyPatch("DisplayCards")]
         private static void AfterDisplayCards(NDeckViewScreen __instance)
         {
+            Control viewUpgrades = __instance.GetNode<Control>("ViewUpgrades");
+            Control bottomText = __instance.GetNode<Control>("BottomText");
+            Vector2 bottomTextPosition = new Vector2(bottomText.GetPosition().X,
+                viewUpgrades.GetPosition().Y + viewUpgrades.GetSize().Y - bottomText.GetSize().Y);
+            bottomText.SetPosition(bottomTextPosition);
+            
             if (_lastPileType != PileType.Deck)
             {
                 return;
             }
             
-            Control parent = __instance.GetNode<Control>(new NodePath("CardGrid/ScrollContainer"));
-            LogAllChildren(parent);
-
-            if (!parent.HasNode(new NodePath(_name)))
+            if (!__instance.HasNode(new NodePath(_name)))
             {
                 if (_container == null)
                 {
@@ -269,11 +272,14 @@ public partial class MainFile : Node
                     PopulateDeckStatsLabel();
                 }
                 
-                Control sortingOptions = parent.GetNode<Control>("SortingOptions");
-                
-                parent.AddChild(_container);
-                Vector2 position = new Vector2(0, 40 + sortingOptions.GetPosition().Y + sortingOptions.GetSize().Y + _cardSize.Value.Y);
+                __instance.AddChild(_container);
+                Vector2 position = new Vector2(viewUpgrades.GetPosition().X + viewUpgrades.GetSize().X,
+                    viewUpgrades.GetPosition().Y + viewUpgrades.GetSize().Y - _label.GetContentHeight());
+                Vector2 size = new Vector2(_cardSize.Value.X, _label.GetContentHeight());
                 _container.SetPosition(position);
+                _container.SetSize(size);
+                bottomTextPosition = new Vector2(bottomText.GetPosition().X, position.Y - bottomText.GetSize().Y);
+                bottomText.SetPosition(bottomTextPosition);
             }
         }
     }
