@@ -1,6 +1,7 @@
 using System.Collections;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
@@ -35,6 +36,10 @@ public partial class MainFile : Node
         private static Hashtable _deckStats = new();
         private static PileType? _lastPileType;
         private static Vector2? _cardSize;
+        private static Font? _regularFont;
+        private static Font? _boldFont;
+        private static int _regularFontSize = 0;
+        private static int _boldFontSize = 0;
 
         private enum StatName
         {
@@ -183,8 +188,23 @@ public partial class MainFile : Node
         {
             _container = new PanelContainer();
             _container.SetName(_name);
+            StyleBox panelStyleBox = (StyleBox) _container.GetThemeStylebox(new StringName("panel")).Duplicate();
+            panelStyleBox.Set(new StringName("bg_color"), new Color(Colors.Black, 0.75f));
+            _container.AddThemeStyleboxOverride(new StringName("panel"), panelStyleBox);
             _label = new RichTextLabel();
             _label.SetFitContent(true);
+            if (_regularFont != null && _boldFont != null)
+            {
+                _label.AddThemeFontOverride(ThemeConstants.RichTextLabel.NormalFont, _regularFont);
+                _label.AddThemeFontOverride(ThemeConstants.RichTextLabel.BoldFont, _boldFont);
+                _label.AddThemeColorOverride(ThemeConstants.RichTextLabel.FontShadowColor, Colors.Black);
+                _label.AddThemeFontSizeOverride(ThemeConstants.RichTextLabel.NormalFontSize, _regularFontSize);
+                _label.AddThemeFontSizeOverride(ThemeConstants.RichTextLabel.BoldFontSize, _boldFontSize);
+            }
+            else
+            {
+                Logger.Warn("Could not find font files");
+            }
             _label.SetAutowrapMode(TextServer.AutowrapMode.Off);
             _container.AddChild(_label);
         }
@@ -247,7 +267,7 @@ public partial class MainFile : Node
                 Logger.Info("  " + child.GetName() + " (" + child.GetType().Name + ")");
             }
         }
-        
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(NDeckViewScreen))]
         [HarmonyPatch("DisplayCards")]
@@ -258,6 +278,15 @@ public partial class MainFile : Node
             Vector2 bottomTextPosition = new Vector2(bottomText.GetPosition().X,
                 viewUpgrades.GetPosition().Y + viewUpgrades.GetSize().Y - bottomText.GetSize().Y);
             bottomText.SetPosition(bottomTextPosition);
+            
+            if (_regularFont == null || _boldFont == null)
+            {
+                MegaRichTextLabel bottomLabel = bottomText.GetNode<MegaRichTextLabel>("MarginContainer/BottomLabel");
+                _regularFont = bottomLabel.GetThemeFont(ThemeConstants.RichTextLabel.NormalFont);
+                _boldFont = bottomLabel.GetThemeFont(ThemeConstants.RichTextLabel.BoldFont);
+                _regularFontSize = bottomLabel.GetThemeFontSize(ThemeConstants.RichTextLabel.NormalFontSize);
+                _boldFontSize = bottomLabel.GetThemeFontSize(ThemeConstants.RichTextLabel.BoldFontSize);
+            }
             
             if (_lastPileType != PileType.Deck)
             {
@@ -278,7 +307,7 @@ public partial class MainFile : Node
                 Vector2 size = new Vector2(_cardSize.Value.X, _label.GetContentHeight());
                 _container.SetPosition(position);
                 _container.SetSize(size);
-                bottomTextPosition = new Vector2(bottomText.GetPosition().X, position.Y - bottomText.GetSize().Y);
+                bottomTextPosition = new Vector2(bottomText.GetPosition().X, position.Y - bottomText.GetSize().Y - 10);
                 bottomText.SetPosition(bottomTextPosition);
             }
         }
