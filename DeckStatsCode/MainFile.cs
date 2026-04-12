@@ -54,7 +54,8 @@ public partial class MainFile : Node
             Random_Enemy = 8,
             Block = 9,
             Weak = 10,
-            Vulnerable = 11
+            Vulnerable = 11,
+            Card_Draw = 12
         }
 
         private static string?[][] _statOrder = [
@@ -62,7 +63,7 @@ public partial class MainFile : Node
             [nameof(StatName.Attacks), nameof(StatName.Single_Target), nameof(StatName.Block)],
             [nameof(StatName.Skills), nameof(StatName.AOE), nameof(StatName.Weak)],
             [nameof(StatName.Powers), nameof(StatName.Random_Enemy), nameof(StatName.Vulnerable)],
-            [nameof(StatName.Curses), null, null],
+            [nameof(StatName.Curses), null, nameof(StatName.Card_Draw)],
             [nameof(StatName.Quests), null, null]
         ];
 
@@ -121,6 +122,7 @@ public partial class MainFile : Node
             int numBlock = 0;
             int numWeak = 0;
             int numVulnerable = 0;
+            int numCardDraw = 0;
             foreach (CardModel card in cardsToDisplay)
             {
                 if (card.Type == CardType.Attack)
@@ -169,6 +171,10 @@ public partial class MainFile : Node
                 {
                     numVulnerable++;
                 }
+                if (card.DynamicVars.ContainsKey("Cards"))
+                {
+                    numCardDraw++;
+                }
             }
 
             _deckStats.Add(nameof(StatName.Attacks), numAttacks);
@@ -182,6 +188,7 @@ public partial class MainFile : Node
             _deckStats.Add(nameof(StatName.Block), numBlock);
             _deckStats.Add(nameof(StatName.Weak), numWeak);
             _deckStats.Add(nameof(StatName.Vulnerable), numVulnerable);
+            _deckStats.Add(nameof(StatName.Card_Draw), numCardDraw);
         }
 
         private static void CreateDeckStatsNode()
@@ -228,10 +235,13 @@ public partial class MainFile : Node
                     if (statName == null)
                     {
                         _label.PushCell();
+                        _label.SetCellPadding(cellPadding);
                         _label.Pop();
                         _label.PushCell();
+                        _label.SetCellPadding(cellPadding);
                         _label.Pop();
                         _label.PushCell();
+                        _label.SetCellPadding(cellPadding);
                         _label.Pop();
                         continue;
                     }
