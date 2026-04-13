@@ -25,6 +25,7 @@ public partial class MainFile : Node
         Harmony harmony = new(ModId);
 
         harmony.PatchAll();
+        ModConfigBridge.DeferredRegister();
     }
 
     [HarmonyPatch]
@@ -33,39 +34,12 @@ public partial class MainFile : Node
         private static string _name = "DeckStats";
         private static PanelContainer? _container;
         private static RichTextLabel? _label;
-        private static Hashtable _deckStats = new();
         private static PileType? _lastPileType;
         private static Vector2? _cardSize;
         private static Font? _regularFont;
         private static Font? _boldFont;
         private static int _regularFontSize = 0;
         private static int _boldFontSize = 0;
-
-        private enum StatName
-        {
-            Total = 0,
-            Attacks = 1,
-            Skills = 2,
-            Powers = 3,
-            Curses = 4,
-            Quests = 5,
-            Single_Target = 6,
-            AOE = 7,
-            Random_Enemy = 8,
-            Block = 9,
-            Weak = 10,
-            Vulnerable = 11,
-            Card_Draw = 12
-        }
-
-        private static string?[][] _statOrder = [
-            [nameof(StatName.Total), null, null],
-            [nameof(StatName.Attacks), nameof(StatName.Single_Target), nameof(StatName.Block)],
-            [nameof(StatName.Skills), nameof(StatName.AOE), nameof(StatName.Weak)],
-            [nameof(StatName.Powers), nameof(StatName.Random_Enemy), nameof(StatName.Vulnerable)],
-            [nameof(StatName.Curses), null, nameof(StatName.Card_Draw)],
-            [nameof(StatName.Quests), null, null]
-        ];
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(NDeckViewScreen))]
@@ -105,90 +79,8 @@ public partial class MainFile : Node
             {
                 return;
             }
-            _deckStats.Clear();
-            if (cardsToDisplay.Count == 0)
-            {
-                return;
-            }
-            _deckStats.Add(nameof(StatName.Total), cardsToDisplay.Count);
-            int numAttacks = 0;
-            int numSingleTarget = 0;
-            int numAOE = 0;
-            int numRandom = 0;
-            int numSkills = 0;
-            int numPowers = 0;
-            int numCurses = 0;
-            int numQuests = 0;
-            int numBlock = 0;
-            int numWeak = 0;
-            int numVulnerable = 0;
-            int numCardDraw = 0;
-            foreach (CardModel card in cardsToDisplay)
-            {
-                if (card.Type == CardType.Attack)
-                {
-                    numAttacks++;
-                    if (card.TargetType == TargetType.AnyEnemy)
-                    {
-                        numSingleTarget++;
-                    }
-                    if (card.TargetType == TargetType.AllEnemies)
-                    {
-                        numAOE++;
-                    }
-                    if (card.TargetType == TargetType.RandomEnemy)
-                    {
-                        numRandom++;
-                    }
-                }
-                if (card.Type == CardType.Skill)
-                {
-                    numSkills++;
-                }
-                if (card.Type == CardType.Power)
-                {
-                    numPowers++;
-                }
-                if (card.Type == CardType.Curse)
-                {
-                    numCurses++;
-                }
-                if (card.Type == CardType.Quest)
-                {
-                    numQuests++;
-                }
-
-                if (card.GainsBlock)
-                {
-                    numBlock++;
-                }
-
-                if (card.DynamicVars.ContainsKey("WeakPower"))
-                {
-                    numWeak++;
-                }
-                if (card.DynamicVars.ContainsKey("VulnerablePower"))
-                {
-                    numVulnerable++;
-                }
-                if (card.DynamicVars.ContainsKey("Cards"))
-                {
-                    numCardDraw++;
-                }
-            }
-
-            _deckStats.Add(nameof(StatName.Attacks), numAttacks);
-            _deckStats.Add(nameof(StatName.Skills), numSkills);
-            _deckStats.Add(nameof(StatName.Powers), numPowers);    
-            _deckStats.Add(nameof(StatName.Curses), numCurses);
-            _deckStats.Add(nameof(StatName.Quests), numQuests);
-            _deckStats.Add(nameof(StatName.Single_Target), numSingleTarget);
-            _deckStats.Add(nameof(StatName.AOE), numAOE);
-            _deckStats.Add(nameof(StatName.Random_Enemy), numRandom);
-            _deckStats.Add(nameof(StatName.Block), numBlock);
-            _deckStats.Add(nameof(StatName.Weak), numWeak);
-            _deckStats.Add(nameof(StatName.Vulnerable), numVulnerable);
-            _deckStats.Add(nameof(StatName.Card_Draw), numCardDraw);
+            
+            DeckStats.CalculateDeckStats(cardsToDisplay);
         }
 
         private static void CreateDeckStatsNode()
@@ -222,46 +114,45 @@ public partial class MainFile : Node
             {
                 CreateDeckStatsNode();
             }
+
+            DeckStats.LoadConfig();
             
             _label.Clear();
 
-            _label.PushTable(_statOrder[0].Length * 3);
+            int tableWidth = DeckStats.GetStatTableWidth();
+            int tableHeight = DeckStats.GetStatTableHeight();
+            _label.PushTable(tableWidth * 3);
             Rect2 cellPadding = new Rect2(10, 0, 10, 0);
-            int totalCards = (int) _deckStats[nameof(StatName.Total)];
-            foreach (string?[] row in _statOrder)
+            int totalCards = DeckStats.GetTotalCardCount();
+            for (int rowNum = 0; rowNum < tableHeight; rowNum++)
             {
-                foreach (string? statName in row)
+                for (int colNum = 0; colNum < tableWidth; colNum++)
                 {
-                    if (statName == null)
+                    string statName = DeckStats.GetStatTableCell(rowNum, colNum);
+                    int statValue = DeckStats.GetStatValue(statName);
+                    if (statName == DeckStats.NONE || statValue < 0)
                     {
-                        _label.PushCell();
-                        _label.SetCellPadding(cellPadding);
-                        _label.Pop();
-                        _label.PushCell();
-                        _label.SetCellPadding(cellPadding);
-                        _label.Pop();
-                        _label.PushCell();
-                        _label.SetCellPadding(cellPadding);
-                        _label.Pop();
+                        for (int i = 0; i < 3; i++)
+                        {
+                            _label.PushCell();
+                            _label.SetCellPadding(cellPadding);
+                            _label.Pop();
+                        }
                         continue;
                     }
-                    if (_deckStats.ContainsKey(statName))
-                    {
-                        int statValue = (int) _deckStats[statName];
-                        int percent = (int) ((float) statValue / totalCards * 100);
-                        _label.PushCell();
-                        _label.SetCellPadding(cellPadding);
-                        _label.AppendText("[b]" + statName.Replace('_', ' ') + ":[/b]");
-                        _label.Pop();
-                        _label.PushCell();
-                        _label.SetCellPadding(cellPadding);
-                        _label.AppendText(_deckStats[statName].ToString());
-                        _label.Pop();
-                        _label.PushCell();
-                        _label.SetCellPadding(cellPadding);
-                        _label.AppendText("(" + percent + "%)");
-                        _label.Pop();
-                    }
+                    int percent = (int) ((float) statValue / totalCards * 100);
+                    _label.PushCell();
+                    _label.SetCellPadding(cellPadding);
+                    _label.AppendText("[b]" + statName.Replace('_', ' ') + ":[/b]");
+                    _label.Pop();
+                    _label.PushCell();
+                    _label.SetCellPadding(cellPadding);
+                    _label.AppendText(statValue.ToString());
+                    _label.Pop();
+                    _label.PushCell();
+                    _label.SetCellPadding(cellPadding);
+                    _label.AppendText("(" + percent + "%)");
+                    _label.Pop();
                 }
             }
             _label.Pop();
