@@ -2,6 +2,7 @@
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Cards;
 
 namespace DeckStats.DeckStatsCode;
 
@@ -22,20 +23,21 @@ public static class DeckStats
     public static string WEAK = "Weak";
     public static string VULNERABLE = "Vulnerable";
     public static string CARD_DRAW = "Card_Draw";
+    public static string ETHEREAL = "Ethereal";
 
     public static string[] ALL_STATS =
     [
         NONE,
         TOTAL, ATTACKS, SKILLS, POWERS, CURSES, QUESTS,
         SINGLE_TARGET, AOE, RANDOM_ENEMY,
-        BLOCK, WEAK, VULNERABLE, CARD_DRAW
+        BLOCK, WEAK, VULNERABLE, CARD_DRAW, ETHEREAL
     ];
 
     public static string[][] COLUMNS =
     [
         [TOTAL, ATTACKS,       SKILLS, POWERS,       CURSES,    QUESTS],
         [NONE,  SINGLE_TARGET, AOE,    RANDOM_ENEMY],
-        [NONE,  BLOCK,         WEAK,   VULNERABLE,   CARD_DRAW]
+        [NONE,  BLOCK,         WEAK,   VULNERABLE,   CARD_DRAW, ETHEREAL]
     ];
 
     public static string[][] currentColumns = COLUMNS;
@@ -179,6 +181,7 @@ public static class DeckStats
         int numWeak = 0;
         int numVulnerable = 0;
         int numCardDraw = 0;
+        int numEthereal = 0;
         foreach (CardModel card in cards)
         {
             if (card.Type == CardType.Attack)
@@ -231,6 +234,10 @@ public static class DeckStats
             {
                 numCardDraw++;
             }
+            if (card.CanonicalKeywords.Contains(CardKeyword.Ethereal))
+            {
+                numEthereal++;
+            }
         }
 
         statValues.Add(ATTACKS, numAttacks);
@@ -245,6 +252,7 @@ public static class DeckStats
         statValues.Add(WEAK, numWeak);
         statValues.Add(VULNERABLE, numVulnerable);
         statValues.Add(CARD_DRAW, numCardDraw);
+        statValues.Add(ETHEREAL, numEthereal);
     }
 
     public static int GetTotalCardCount()
