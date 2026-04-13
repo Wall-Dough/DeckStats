@@ -227,7 +227,7 @@ public static class DeckStats
             {
                 numVulnerable++;
             }
-            if (card.DynamicVars.ContainsKey("Cards"))
+            if (card.DynamicVars.ContainsKey("Cards") || card.DynamicVars.ContainsKey("DrawCardsNextTurnPower"))
             {
                 numCardDraw++;
             }
