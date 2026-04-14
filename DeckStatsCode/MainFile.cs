@@ -1,4 +1,3 @@
-using System.Collections;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;

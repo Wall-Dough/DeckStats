@@ -187,18 +187,19 @@ public static class DeckStats
             if (card.Type == CardType.Attack)
             {
                 numAttacks++;
-                if (card.TargetType == TargetType.AnyEnemy)
-                {
-                    numSingleTarget++;
-                }
-                if (card.TargetType == TargetType.AllEnemies)
-                {
-                    numAOE++;
-                }
-                if (card.TargetType == TargetType.RandomEnemy)
-                {
-                    numRandom++;
-                }
+            }
+            // TODO: get more specific with these?
+            if (card.TargetType == TargetType.AnyEnemy)
+            {
+                numSingleTarget++;
+            }
+            if (card.TargetType == TargetType.AllEnemies)
+            {
+                numAOE++;
+            }
+            if (card.TargetType == TargetType.RandomEnemy)
+            {
+                numRandom++;
             }
             if (card.Type == CardType.Skill)
             {
