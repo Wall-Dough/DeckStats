@@ -112,25 +112,19 @@ public static class DeckStats
         {
             return NONE;
         }
-        string statName = column[rowNum];
-        if (statName == null)
-        {
-            return NONE;
-        }
-        return statName;
+        return column[rowNum];
     }
 
     public static int GetStatValue(string statName)
     {
-        if (statName == null)
-        {
-            return -1;
-        }
         if (statValues.ContainsKey(statName))
         {
-            return (int) statValues[statName];
+            object? value = statValues[statName];
+            if (value != null && value is int)
+            {
+                return (int) value;
+            }
         }
-
         return -1;
     }
 
@@ -184,60 +178,77 @@ public static class DeckStats
         int numEthereal = 0;
         foreach (CardModel card in cards)
         {
-            if (card.Type == CardType.Attack)
+            try
             {
-                numAttacks++;
-            }
-            // TODO: get more specific with these?
-            if (card.TargetType == TargetType.AnyEnemy)
-            {
-                numSingleTarget++;
-            }
-            if (card.TargetType == TargetType.AllEnemies)
-            {
-                numAOE++;
-            }
-            if (card.TargetType == TargetType.RandomEnemy)
-            {
-                numRandom++;
-            }
-            if (card.Type == CardType.Skill)
-            {
-                numSkills++;
-            }
-            if (card.Type == CardType.Power)
-            {
-                numPowers++;
-            }
-            if (card.Type == CardType.Curse)
-            {
-                numCurses++;
-            }
-            if (card.Type == CardType.Quest)
-            {
-                numQuests++;
-            }
+                if (card.Type == CardType.Attack)
+                {
+                    numAttacks++;
+                }
 
-            if (card.GainsBlock)
-            {
-                numBlock++;
-            }
+                // TODO: get more specific with these?
+                if (card.TargetType == TargetType.AnyEnemy)
+                {
+                    numSingleTarget++;
+                }
 
-            if (card.DynamicVars.ContainsKey("WeakPower"))
-            {
-                numWeak++;
+                if (card.TargetType == TargetType.AllEnemies)
+                {
+                    numAOE++;
+                }
+
+                if (card.TargetType == TargetType.RandomEnemy)
+                {
+                    numRandom++;
+                }
+
+                if (card.Type == CardType.Skill)
+                {
+                    numSkills++;
+                }
+
+                if (card.Type == CardType.Power)
+                {
+                    numPowers++;
+                }
+
+                if (card.Type == CardType.Curse)
+                {
+                    numCurses++;
+                }
+
+                if (card.Type == CardType.Quest)
+                {
+                    numQuests++;
+                }
+
+                if (card.GainsBlock)
+                {
+                    numBlock++;
+                }
+
+                if (card.DynamicVars.ContainsKey("WeakPower"))
+                {
+                    numWeak++;
+                }
+
+                if (card.DynamicVars.ContainsKey("VulnerablePower"))
+                {
+                    numVulnerable++;
+                }
+
+                if (card.DynamicVars.ContainsKey("Cards") || card.DynamicVars.ContainsKey("DrawCardsNextTurnPower"))
+                {
+                    numCardDraw++;
+                }
+
+                if (card.CanonicalKeywords.Contains(CardKeyword.Ethereal))
+                {
+                    numEthereal++;
+                }
             }
-            if (card.DynamicVars.ContainsKey("VulnerablePower"))
+            catch (Exception e)
             {
-                numVulnerable++;
-            }
-            if (card.DynamicVars.ContainsKey("Cards") || card.DynamicVars.ContainsKey("DrawCardsNextTurnPower"))
-            {
-                numCardDraw++;
-            }
-            if (card.CanonicalKeywords.Contains(CardKeyword.Ethereal))
-            {
-                numEthereal++;
+                MainFile.AddException(e);
             }
         }
 
