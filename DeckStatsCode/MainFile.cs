@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;
@@ -124,9 +125,14 @@ public partial class MainFile : Node
             {
                 CreateDeckStatsNode();
             }
+            if (_label == null)
+            {
+                Logger.Error("Null DeckStats label");
+                return;
+            }
 
             DeckStats.LoadConfig();
-            
+
             _label.Clear();
 
             int tableWidth = DeckStats.GetStatTableWidth();
@@ -211,13 +217,33 @@ public partial class MainFile : Node
                     CreateDeckStatsNode();
                     PopulateDeckStatsLabel();
                 }
-                
+
+                if (_label == null)
+                {
+                    Logger.Error("Null DeckStats label");
+                    return;
+                }
+
+                if (_container == null)
+                {
+                    Logger.Error("Null DeckStats container");
+                    return;
+                }
+
                 __instance.AddChild(_container);
                 Vector2 position = new Vector2(viewUpgrades.GetPosition().X + viewUpgrades.GetSize().X,
                     viewUpgrades.GetPosition().Y + viewUpgrades.GetSize().Y - _label.GetContentHeight());
-                Vector2 size = new Vector2(_cardSize.Value.X, _label.GetContentHeight());
+                float containerWidth = 300;
+                if (_cardSize == null)
+                {
+                    Logger.Warn("Null DeckStats card size");
+                }
+                else
+                {
+                    containerWidth = _cardSize.Value.X;
+                }
                 _container.SetPosition(position);
-                _container.SetSize(size);
+                _container.SetSize(new Vector2(containerWidth, _label.GetContentHeight()));
                 bottomTextPosition = new Vector2(bottomText.GetPosition().X, position.Y - bottomText.GetSize().Y - 10);
                 bottomText.SetPosition(bottomTextPosition);
             }

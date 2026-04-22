@@ -135,10 +135,10 @@ public static class DeckStats
 
     public static int GetStatTableHeight()
     {
-        MainFile.Logger.Info(currentColumns.ToString());
         if (currentColumns == null)
         {
             MainFile.Logger.Warn("null current columns");
+            return 0;
         }
         int maxLength = 0;
         foreach (string[] column in currentColumns)
@@ -146,6 +146,7 @@ public static class DeckStats
             if (column == null)
             {
                 MainFile.Logger.Warn("null column");
+                continue;
             }
             if (column.Length > maxLength)
             {
@@ -271,7 +272,11 @@ public static class DeckStats
     {
         if (statValues.ContainsKey(TOTAL))
         {
-            return (int) statValues[TOTAL];
+            object? value = statValues[TOTAL];
+            if (value != null && value is int)
+            {
+                return (int) value;
+            }
         }
 
         return 0;
