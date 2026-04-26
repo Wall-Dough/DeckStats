@@ -28,11 +28,6 @@ public partial class MainFile : Node
         ModConfigBridge.DeferredRegister();
     }
 
-    public static void AddException(Exception e)
-    {
-        DeckStatsPatch.AddException(e);
-    }
-
     [HarmonyPatch]
     public class DeckStatsPatch
     {
@@ -45,12 +40,6 @@ public partial class MainFile : Node
         private static Font? _boldFont;
         private static int _regularFontSize = 0;
         private static int _boldFontSize = 0;
-        public static List<Exception> Exceptions = new();
-
-        public static void AddException(Exception e)
-        {
-            Exceptions.Add(e);
-        }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(NDeckViewScreen))]

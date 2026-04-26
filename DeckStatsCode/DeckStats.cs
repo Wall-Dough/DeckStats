@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.DevConsole.ConsoleCommands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Cards;
@@ -24,6 +25,8 @@ public static class DeckStats
     public static string VULNERABLE = "Vulnerable";
     public static string CARD_DRAW = "Card_Draw";
     public static string ETHEREAL = "Ethereal";
+
+    public static MegaCrit.Sts2.Core.Logging.Logger Logger = MainFile.Logger;
 
     public static string[] ALL_STATS =
     [
@@ -249,7 +252,7 @@ public static class DeckStats
             }
             catch (Exception e)
             {
-                MainFile.AddException(e);
+                Logger.Error($"There was a problem collecting stats for {card.Title}:\n{e.Message}");
             }
         }
 
