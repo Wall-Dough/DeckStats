@@ -253,6 +253,7 @@ public static class DeckStats
             catch (Exception e)
             {
                 Logger.Error($"There was a problem collecting stats for {card.Title}:\n{e.Message}");
+                MainFile.DeckStatsPatch.ShouldShowLogButton = true;
             }
         }
 

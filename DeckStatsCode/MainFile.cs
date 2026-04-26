@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;
+using MegaCrit.Sts2.Core.DevConsole.ConsoleCommands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
@@ -40,6 +41,7 @@ public partial class MainFile : Node
         private static Font? _boldFont;
         private static int _regularFontSize = 0;
         private static int _boldFontSize = 0;
+        public static bool ShouldShowLogButton = false;
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(NDeckViewScreen))]
@@ -74,6 +76,7 @@ public partial class MainFile : Node
         private static void BeforeSetCards(IReadOnlyList<CardModel> cardsToDisplay, PileType pileType,
             List<SortingOrders> sortingPriority, Task? taskToWaitOn)
         {
+            ShouldShowLogButton = false;
             _lastPileType = pileType;
             if (pileType != PileType.Deck)
             {
@@ -161,8 +164,6 @@ public partial class MainFile : Node
                 }
             }
             _label.Pop();
-            
-            Logger.Info(_label.GetText());
         }
 
         private static void LogAllChildren(Node parent)
@@ -235,6 +236,19 @@ public partial class MainFile : Node
                 _container.SetSize(new Vector2(containerWidth, _label.GetContentHeight()));
                 bottomTextPosition = new Vector2(bottomText.GetPosition().X, position.Y - bottomText.GetSize().Y - 10);
                 bottomText.SetPosition(bottomTextPosition);
+                ShouldShowLogButton = true;
+                if (ShouldShowLogButton)
+                {
+                    Button logButton = new Button();
+                    logButton.Text = "Get logs";
+                    logButton.SetHSizeFlags(Control.SizeFlags.ShrinkEnd);
+                    logButton.SetVSizeFlags(Control.SizeFlags.ShrinkEnd);
+                    logButton.Pressed += () =>
+                    {
+                        new GetLogsConsoleCmd().Process(null, []);
+                    };
+                    _container.AddChild(logButton);
+                }
             }
         }
     }
