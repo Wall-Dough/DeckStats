@@ -211,6 +211,11 @@ public partial class MainFile : Node
             Vector2 bottomTextPosition = new Vector2(bottomText.GetPosition().X,
                 viewUpgrades.GetPosition().Y + viewUpgrades.GetSize().Y - bottomText.GetSize().Y);
             bottomText.SetPosition(bottomTextPosition);
+
+            if (_lastPileType != PileType.Deck)
+            {
+                return;
+            }
             
             if (_regularFont == null || _boldFont == null)
             {
@@ -219,11 +224,6 @@ public partial class MainFile : Node
                 _boldFont = bottomLabel.GetThemeFont(ThemeConstants.RichTextLabel.BoldFont);
                 _regularFontSize = bottomLabel.GetThemeFontSize(ThemeConstants.RichTextLabel.NormalFontSize);
                 _boldFontSize = bottomLabel.GetThemeFontSize(ThemeConstants.RichTextLabel.BoldFontSize);
-            }
-            
-            if (_lastPileType != PileType.Deck)
-            {
-                return;
             }
             
             if (!__instance.HasNode(new NodePath(_containerName)))
