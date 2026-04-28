@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.DevConsole.ConsoleCommands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardLibrary;
@@ -32,9 +33,8 @@ public partial class MainFile : Node
     [HarmonyPatch]
     public class DeckStatsPatch
     {
-        private static string _name = "DeckStats";
-        private static PanelContainer? _container;
-        private static RichTextLabel? _label;
+        private static string _containerName = "DeckStats";
+        private static string _labelName = "DeckStatsLabel";
         private static PileType? _lastPileType;
         private static Vector2? _cardSize;
         private static Font? _regularFont;
@@ -43,22 +43,47 @@ public partial class MainFile : Node
         private static int _boldFontSize = 0;
         public static bool ShouldShowLogButton = false;
 
+        private static void ShowLogButton(NDeckViewScreen? deckViewScreen, Control? container)
+        {
+            if (container == null)
+            {
+                if (deckViewScreen == null)
+                {
+                    Logger.Error("Cannot show log button, both deck view screen and container are null");
+                    return;
+                }
+                container = deckViewScreen.GetNode<Control>(_containerName);
+                if (container == null)
+                {
+                    Logger.Warn("Container not found, creating simple container to add log button to");
+                    container = new PanelContainer();
+                    deckViewScreen.AddChild(container);
+                    Control bottomText = deckViewScreen.GetNode<Control>("BottomText");
+                    Vector2 position = bottomText.GetPosition(); 
+                    Vector2 size = bottomText.GetSize();
+                    container.SetPosition(new Vector2(position.X + size.X, position.Y));
+                }
+            }
+            Button logButton = new Button();
+            logButton.Text = "Get logs";
+            logButton.SetHSizeFlags(Control.SizeFlags.ShrinkEnd);
+            logButton.SetVSizeFlags(Control.SizeFlags.ShrinkEnd);
+            logButton.Pressed += () =>
+            {
+                new GetLogsConsoleCmd().Process(null, []);
+            };
+            container.AddChild(logButton);
+        }
+
         [HarmonyPrefix]
         [HarmonyPatch(typeof(NDeckViewScreen))]
         [HarmonyPatch("DisplayCards")]
         private static void BeforeDisplayCards(NDeckViewScreen __instance)
         {
-            if (_container != null && __instance.HasNode(new NodePath(_name)))
+            if (__instance.HasNode(new NodePath(_containerName)))
             {
-                __instance.RemoveChild(_container);
-                _container = null;
-                _label = null;
-            }
-
-            if (_container != null || _label != null)
-            {
-                _container = null;
-                _label = null;
+                Control deckStatsNode = __instance.GetNode<Control>("DeckStatsNode");
+                __instance.RemoveChild(deckStatsNode);
             }
         }
 
@@ -86,50 +111,51 @@ public partial class MainFile : Node
             DeckStats.CalculateDeckStats(cardsToDisplay);
         }
 
-        private static void CreateDeckStatsNode()
+        private static Control CreateDeckStatsNode()
         {
-            _container = new PanelContainer();
-            _container.SetName(_name);
-            StyleBox panelStyleBox = (StyleBox) _container.GetThemeStylebox(new StringName("panel")).Duplicate();
+            PanelContainer container = new PanelContainer();
+            container.SetName(_containerName);
+            StyleBox panelStyleBox = (StyleBox) container.GetThemeStylebox(new StringName("panel")).Duplicate();
             panelStyleBox.Set(new StringName("bg_color"), new Color(Colors.Black, 0.75f));
-            _container.AddThemeStyleboxOverride(new StringName("panel"), panelStyleBox);
-            _label = new RichTextLabel();
-            _label.SetFitContent(true);
+            container.AddThemeStyleboxOverride(new StringName("panel"), panelStyleBox);
+            RichTextLabel label = new RichTextLabel();
+            label.SetName(_labelName);
+            label.SetFitContent(true);
             if (_regularFont != null && _boldFont != null)
             {
-                _label.AddThemeFontOverride(ThemeConstants.RichTextLabel.NormalFont, _regularFont);
-                _label.AddThemeFontOverride(ThemeConstants.RichTextLabel.BoldFont, _boldFont);
-                _label.AddThemeColorOverride(ThemeConstants.RichTextLabel.FontShadowColor, Colors.Black);
-                _label.AddThemeFontSizeOverride(ThemeConstants.RichTextLabel.NormalFontSize, _regularFontSize);
-                _label.AddThemeFontSizeOverride(ThemeConstants.RichTextLabel.BoldFontSize, _boldFontSize);
+                label.AddThemeFontOverride(ThemeConstants.RichTextLabel.NormalFont, _regularFont);
+                label.AddThemeFontOverride(ThemeConstants.RichTextLabel.BoldFont, _boldFont);
+                label.AddThemeColorOverride(ThemeConstants.RichTextLabel.FontShadowColor, Colors.Black);
+                label.AddThemeFontSizeOverride(ThemeConstants.RichTextLabel.NormalFontSize, _regularFontSize);
+                label.AddThemeFontSizeOverride(ThemeConstants.RichTextLabel.BoldFontSize, _boldFontSize);
             }
             else
             {
                 Logger.Warn("Could not find font files");
+                ShouldShowLogButton = true;
             }
-            _label.SetAutowrapMode(TextServer.AutowrapMode.Off);
-            _container.AddChild(_label);
+            label.SetAutowrapMode(TextServer.AutowrapMode.Off);
+            container.AddChild(label);
+            return container;
         }
 
-        private static void PopulateDeckStatsLabel()
+        private static void PopulateDeckStatsLabel(Control container)
         {
-            if (_label == null)
+            RichTextLabel label = container.GetNode<RichTextLabel>(_labelName);
+            if (label == null)
             {
-                CreateDeckStatsNode();
-            }
-            if (_label == null)
-            {
-                Logger.Error("Null DeckStats label");
+                Logger.Error("No deck stats label found");
+                ShouldShowLogButton = true;
                 return;
             }
 
             DeckStats.LoadConfig();
 
-            _label.Clear();
+            label.Clear();
 
             int tableWidth = DeckStats.GetStatTableWidth();
             int tableHeight = DeckStats.GetStatTableHeight();
-            _label.PushTable(tableWidth * 3);
+            label.PushTable(tableWidth * 3);
             Rect2 cellPadding = new Rect2(10, 0, 10, 0);
             int totalCards = DeckStats.GetTotalCardCount();
             for (int rowNum = 0; rowNum < tableHeight; rowNum++)
@@ -142,28 +168,28 @@ public partial class MainFile : Node
                     {
                         for (int i = 0; i < 3; i++)
                         {
-                            _label.PushCell();
-                            _label.SetCellPadding(cellPadding);
-                            _label.Pop();
+                            label.PushCell();
+                            label.SetCellPadding(cellPadding);
+                            label.Pop();
                         }
                         continue;
                     }
                     int percent = (int) ((float) statValue / totalCards * 100);
-                    _label.PushCell();
-                    _label.SetCellPadding(cellPadding);
-                    _label.AppendText("[b]" + statName.Replace('_', ' ') + ":[/b]");
-                    _label.Pop();
-                    _label.PushCell();
-                    _label.SetCellPadding(cellPadding);
-                    _label.AppendText(statValue.ToString());
-                    _label.Pop();
-                    _label.PushCell();
-                    _label.SetCellPadding(cellPadding);
-                    _label.AppendText("(" + percent + "%)");
-                    _label.Pop();
+                    label.PushCell();
+                    label.SetCellPadding(cellPadding);
+                    label.AppendText("[b]" + statName.Replace('_', ' ') + ":[/b]");
+                    label.Pop();
+                    label.PushCell();
+                    label.SetCellPadding(cellPadding);
+                    label.AppendText(statValue.ToString());
+                    label.Pop();
+                    label.PushCell();
+                    label.SetCellPadding(cellPadding);
+                    label.AppendText("(" + percent + "%)");
+                    label.Pop();
                 }
             }
-            _label.Pop();
+            label.Pop();
         }
 
         private static void LogAllChildren(Node parent)
@@ -200,54 +226,40 @@ public partial class MainFile : Node
                 return;
             }
             
-            if (!__instance.HasNode(new NodePath(_name)))
+            if (!__instance.HasNode(new NodePath(_containerName)))
             {
-                if (_container == null)
-                {
-                    CreateDeckStatsNode();
-                    PopulateDeckStatsLabel();
-                }
-
-                if (_label == null)
-                {
-                    Logger.Error("Null DeckStats label");
-                    return;
-                }
-
-                if (_container == null)
+                Control container = CreateDeckStatsNode();
+                if (container == null)
                 {
                     Logger.Error("Null DeckStats container");
+                    ShouldShowLogButton = true;
+                    ShowLogButton(__instance, null);
                     return;
                 }
+                PopulateDeckStatsLabel(container);
+                
+                RichTextLabel label = container.GetNode<RichTextLabel>(_labelName);
 
-                __instance.AddChild(_container);
+                __instance.AddChild(container);
                 Vector2 position = new Vector2(viewUpgrades.GetPosition().X + viewUpgrades.GetSize().X,
-                    viewUpgrades.GetPosition().Y + viewUpgrades.GetSize().Y - _label.GetContentHeight());
+                    viewUpgrades.GetPosition().Y + viewUpgrades.GetSize().Y - label.GetContentHeight());
                 float containerWidth = 300;
                 if (_cardSize == null)
                 {
                     Logger.Warn("Null DeckStats card size");
+                    ShouldShowLogButton = true;
                 }
                 else
                 {
                     containerWidth = _cardSize.Value.X;
                 }
-                _container.SetPosition(position);
-                _container.SetSize(new Vector2(containerWidth, _label.GetContentHeight()));
+                container.SetPosition(position);
+                container.SetSize(new Vector2(containerWidth, label.GetContentHeight()));
                 bottomTextPosition = new Vector2(bottomText.GetPosition().X, position.Y - bottomText.GetSize().Y - 10);
                 bottomText.SetPosition(bottomTextPosition);
-                ShouldShowLogButton = true;
                 if (ShouldShowLogButton)
                 {
-                    Button logButton = new Button();
-                    logButton.Text = "Get logs";
-                    logButton.SetHSizeFlags(Control.SizeFlags.ShrinkEnd);
-                    logButton.SetVSizeFlags(Control.SizeFlags.ShrinkEnd);
-                    logButton.Pressed += () =>
-                    {
-                        new GetLogsConsoleCmd().Process(null, []);
-                    };
-                    _container.AddChild(logButton);
+                    ShowLogButton(__instance, container);
                 }
             }
         }
