@@ -120,18 +120,35 @@ public static class DeckStats
         return column[rowNum];
     }
 
-    public static int GetStatValue(PileType pileType, string statName)
+    public static int[] GetStatArray(PileType pileType, string statName)
     {
         Hashtable statValues = GetStatValuesForPile(pileType);
         if (statValues.ContainsKey(statName))
         {
             object? value = statValues[statName];
-            if (value != null && value is int)
+            if (value != null && value is int[])
             {
-                return (int) value;
+                return (int[]) value;
             }
         }
-        return -1;
+        return [];
+    }
+    
+    public static int GetStatValue(PileType pileType, string statName)
+    {
+        int[] statArray = GetStatArray(pileType, statName);
+        if (statArray.Length == 0)
+        {
+            return -1;
+        }
+
+        int idx = 0;
+        if (IsSecondCycleToggled(pileType) && statArray.Length > 1)
+        {
+            idx = 1;
+        }
+
+        return statArray[idx];
     }
 
     public static int GetStatTableWidth()
@@ -219,88 +236,116 @@ public static class DeckStats
         {
             return;
         }
-        statValues.Add(TOTAL, cards.Count);
-        int numAttacks = 0;
-        int numSingleTarget = 0;
-        int numAOE = 0;
-        int numRandom = 0;
-        int numSkills = 0;
-        int numPowers = 0;
-        int numCurses = 0;
-        int numQuests = 0;
-        int numBlock = 0;
-        int numWeak = 0;
-        int numVulnerable = 0;
-        int numCardDraw = 0;
-        int numEthereal = 0;
+        int[] totalCards = [0, 0];
+        int[] numAttacks = [0, 0];
+        int[] numSingleTarget = [0, 0];
+        int[] numAOE = [0, 0];
+        int[] numRandom = [0, 0];
+        int[] numSkills = [0, 0];
+        int[] numPowers = [0, 0];
+        int[] numCurses = [0, 0];
+        int[] numQuests = [0, 0];
+        int[] numBlock = [0, 0];
+        int[] numWeak = [0, 0];
+        int[] numVulnerable = [0, 0];
+        int[] numCardDraw = [0, 0];
+        int[] numEthereal = [0, 0];
         foreach (CardModel card in cards)
         {
             try
             {
+                int secondCycleCount = 1;
+                if (card.CanonicalKeywords.Contains(CardKeyword.Ethereal) && card.Type == CardType.Curse)
+                {
+                    secondCycleCount = 0;
+                }
+                if (card.CanonicalKeywords.Contains(CardKeyword.Exhaust))
+                {
+                    secondCycleCount = 0;
+                }
+                if (card.Type == CardType.Power)
+                {
+                    secondCycleCount = 0;
+                }
+                totalCards[0]++;
+                totalCards[1] += secondCycleCount;
                 if (card.Type == CardType.Attack)
                 {
-                    numAttacks++;
+                    numAttacks[0]++;
+                    numAttacks[1] += secondCycleCount;
                 }
 
                 // TODO: get more specific with these?
                 if (card.TargetType == TargetType.AnyEnemy)
                 {
-                    numSingleTarget++;
+                    numSingleTarget[0]++;
+                    numSingleTarget[1] += secondCycleCount;
                 }
 
                 if (card.TargetType == TargetType.AllEnemies)
                 {
-                    numAOE++;
+                    numAOE[0]++;
+                    numAOE[1] += secondCycleCount;
                 }
 
                 if (card.TargetType == TargetType.RandomEnemy)
                 {
-                    numRandom++;
+                    numRandom[0]++;
+                    numRandom[1] += secondCycleCount;
                 }
 
                 if (card.Type == CardType.Skill)
                 {
-                    numSkills++;
+                    numSkills[0]++;
+                    numSkills[1] += secondCycleCount;
                 }
 
                 if (card.Type == CardType.Power)
                 {
-                    numPowers++;
+                    numPowers[0]++;
+                    numPowers[1] += secondCycleCount;
                 }
 
                 if (card.Type == CardType.Curse)
                 {
-                    numCurses++;
+                    numCurses[0]++;
+                    numCurses[1] += secondCycleCount;
                 }
 
                 if (card.Type == CardType.Quest)
                 {
-                    numQuests++;
+                    numQuests[0]++;
+                    numQuests[1] += secondCycleCount;
                 }
 
                 if (card.GainsBlock)
                 {
-                    numBlock++;
+                    numBlock[0]++;
+                    numBlock[1] += secondCycleCount;
                 }
 
                 if (card.DynamicVars.ContainsKey("WeakPower"))
                 {
-                    numWeak++;
+                    numWeak[0]++;
+                    numWeak[1] += secondCycleCount;
                 }
 
                 if (card.DynamicVars.ContainsKey("VulnerablePower"))
                 {
-                    numVulnerable++;
+                    numVulnerable[0]++;
+                    numVulnerable[1] += secondCycleCount;
                 }
 
                 if (card.DynamicVars.ContainsKey("Cards") || card.DynamicVars.ContainsKey("DrawCardsNextTurnPower"))
                 {
-                    numCardDraw++;
+                    numCardDraw[0]++;
+                    numCardDraw[1] += secondCycleCount;
                 }
 
                 if (card.CanonicalKeywords.Contains(CardKeyword.Ethereal))
                 {
-                    numEthereal++;
+                    numEthereal[0]++;
+                    numEthereal[1] += secondCycleCount;
                 }
             }
             catch (Exception e)
@@ -310,6 +355,7 @@ public static class DeckStats
             }
         }
 
+        statValues.Add(TOTAL, totalCards);
         statValues.Add(ATTACKS, numAttacks);
         statValues.Add(SKILLS, numSkills);
         statValues.Add(POWERS, numPowers);    
@@ -327,16 +373,6 @@ public static class DeckStats
 
     public static int GetTotalCardCount(PileType pileType)
     {
-        Hashtable statValues = GetStatValuesForPile(pileType);
-        if (statValues.ContainsKey(TOTAL))
-        {
-            object? value = statValues[TOTAL];
-            if (value != null && value is int)
-            {
-                return (int) value;
-            }
-        }
-
-        return 0;
+        return GetStatValue(pileType, TOTAL);
     }
 }

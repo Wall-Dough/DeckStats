@@ -7,7 +7,6 @@ using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
-using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardLibrary;
 
@@ -189,6 +188,7 @@ public partial class MainFile : Node
                 if (_lastPileType != null)
                 {
                     DeckStats.SetSecondCycleToggled((PileType) _lastPileType, secondCycleCheckbox.IsPressed());
+                    PopulateDeckStatsLabel(container);
                 }
                 else
                 {
