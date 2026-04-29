@@ -3,7 +3,7 @@
   "name": "DeckStats",
   "author": "WallyScreenshots",
   "description": "Slay the Spire 2 mod to stats in the deck view screen.",
-  "version": "v0.0.6",
+  "version": "v0.0.7",
   "has_pck": true,
   "has_dll": true,
   "dependencies": [],
