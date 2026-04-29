@@ -41,7 +41,7 @@ public partial class MainFile : Node
         private static int _boldFontSize = 0;
         public static bool ShouldShowLogButton = false;
 
-        private static void ShowLogButton(NDeckViewScreen? deckViewScreen, Control? container)
+        private static void ShowLogButton(NCardsViewScreen? deckViewScreen, Control? container)
         {
             if (container == null)
             {
@@ -101,6 +101,8 @@ public partial class MainFile : Node
         {
             ShouldShowLogButton = false;
             _lastPileType = pileType;
+            
+            Logger.Info($"Should be getting deck stats for pile type \"{pileType.ToString()}\"");
             
             DeckStats.CalculateDeckStats(pileType, cardsToDisplay);
         }
@@ -207,10 +209,12 @@ public partial class MainFile : Node
         [HarmonyPatch("DisplayCards")]
         private static void AfterDisplayCards(NDeckViewScreen __instance)
         {
-            Control viewUpgrades = __instance.GetNode<Control>("ViewUpgrades");
+            Control cardGrid = __instance.GetNode<Control>("CardGrid");
+            Control scrollContainer = cardGrid.GetNode<Control>("ScrollContainer");
+            LogAllChildren(scrollContainer);
             Control bottomText = __instance.GetNode<Control>("BottomText");
             Vector2 bottomTextPosition = new Vector2(bottomText.GetPosition().X,
-                viewUpgrades.GetPosition().Y + viewUpgrades.GetSize().Y - bottomText.GetSize().Y);
+                cardGrid.GetPosition().Y + cardGrid.GetSize().Y - bottomText.GetSize().Y);
             bottomText.SetPosition(bottomTextPosition);
 
             if (_lastPileType != PileType.Deck)
@@ -242,8 +246,9 @@ public partial class MainFile : Node
                 RichTextLabel label = container.GetNode<RichTextLabel>(_labelName);
 
                 __instance.AddChild(container);
-                Vector2 position = new Vector2(viewUpgrades.GetPosition().X + viewUpgrades.GetSize().X,
-                    viewUpgrades.GetPosition().Y + viewUpgrades.GetSize().Y - label.GetContentHeight());
+                float padding = 100f;
+                Vector2 position = new Vector2(scrollContainer.GetPosition().X + padding,
+                    cardGrid.GetPosition().Y + cardGrid.GetSize().Y - label.GetContentHeight());
                 float containerWidth = 300;
                 if (_cardSize == null)
                 {
