@@ -35,6 +35,8 @@ public partial class MainFile : Node
     {
         private static string _containerName = "DeckStats";
         private static string _labelName = "DeckStatsLabel";
+        private static string _controlsName = "DeckStatsControls";
+        private static string _secondCycleToggleName = "DeckStatsSecondCycleToggle";
         private static PileType? _lastPileType;
         private static Vector2? _cardSize;
         private static Font? _regularFont;
@@ -43,22 +45,22 @@ public partial class MainFile : Node
         private static int _boldFontSize = 0;
         public static bool ShouldShowLogButton = false;
 
-        private static void ShowLogButton(Control? deckViewScreen, Control? container)
+        private static void ShowLogButton(Control? viewScreen, Control? container)
         {
             if (container == null)
             {
-                if (deckViewScreen == null)
+                if (viewScreen == null)
                 {
                     Logger.Error("Cannot show log button, both deck view screen and container are null");
                     return;
                 }
-                container = deckViewScreen.GetNode<Control>(_containerName);
+                container = viewScreen.GetNode<Control>(_containerName);
                 if (container == null)
                 {
                     Logger.Warn("Container not found, creating simple container to add log button to");
                     container = new PanelContainer();
-                    deckViewScreen.AddChild(container);
-                    Control bottomText = deckViewScreen.GetNode<Control>("BottomText");
+                    viewScreen.AddChild(container);
+                    Control bottomText = viewScreen.GetNode<Control>("BottomText");
                     Vector2 position = bottomText.GetPosition(); 
                     Vector2 size = bottomText.GetSize();
                     container.SetPosition(new Vector2(position.X + size.X, position.Y));
@@ -72,7 +74,12 @@ public partial class MainFile : Node
             {
                 new GetLogsConsoleCmd().Process(null, []);
             };
+            if (container.HasNode(_controlsName))
+            {
+                container = container.GetNode<Control>(_controlsName);
+            }
             container.AddChild(logButton);
+            container.MoveChild(logButton, 0);
         }
 
         [HarmonyPrefix]
@@ -163,6 +170,15 @@ public partial class MainFile : Node
             vContainer.AddChildSafely(toggleButton);
             vContainer.AddChildSafely(label);
             container.AddChildSafely(vContainer);
+            HBoxContainer hBoxContainer = new();
+            hBoxContainer.SetName(_controlsName);
+            CheckBox secondCycleCheckbox = new();
+            secondCycleCheckbox.SetName(_secondCycleToggleName);
+            secondCycleCheckbox.SetText("Second cycle");
+            hBoxContainer.AddChildSafely(secondCycleCheckbox);
+            hBoxContainer.SetHSizeFlags(Control.SizeFlags.ShrinkEnd);
+            hBoxContainer.SetVSizeFlags(Control.SizeFlags.ShrinkEnd);
+            container.AddChildSafely(hBoxContainer);
             return container;
         }
 
@@ -303,6 +319,12 @@ public partial class MainFile : Node
                 return container.GetChild(0).GetNode<RichTextLabel>(_labelName);
             }
         }
+        
+        private static Control GetControlsNode(Control viewScreen)
+        {
+            Control container = GetContainerNode(viewScreen);
+            return container.GetNode<Control>(_controlsName);
+        }
 
         private static void ShowDeckStats(Control viewScreen)
         {
@@ -337,7 +359,8 @@ public partial class MainFile : Node
                 viewScreen.AddChild(container);
                 
                 UpdateDeckStatsPosition(viewScreen);
-                
+
+                ShouldShowLogButton = true;
                 if (ShouldShowLogButton)
                 {
                     ShowLogButton(viewScreen, container);
