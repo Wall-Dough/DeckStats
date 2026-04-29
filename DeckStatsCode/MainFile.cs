@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardLibrary;
 
@@ -41,7 +42,7 @@ public partial class MainFile : Node
         private static int _boldFontSize = 0;
         public static bool ShouldShowLogButton = false;
 
-        private static void ShowLogButton(NCardsViewScreen? deckViewScreen, Control? container)
+        private static void ShowLogButton(Control? deckViewScreen, Control? container)
         {
             if (container == null)
             {
@@ -204,20 +205,16 @@ public partial class MainFile : Node
             }
         }
 
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(NDeckViewScreen))]
-        [HarmonyPatch("DisplayCards")]
-        private static void AfterDisplayCards(NDeckViewScreen __instance)
+        private static void ShowDeckStats(Control viewScreen)
         {
-            Control cardGrid = __instance.GetNode<Control>("CardGrid");
+            Control cardGrid = viewScreen.GetNode<Control>("CardGrid");
             Control scrollContainer = cardGrid.GetNode<Control>("ScrollContainer");
-            LogAllChildren(scrollContainer);
-            Control bottomText = __instance.GetNode<Control>("BottomText");
+            Control bottomText = viewScreen.GetNode<Control>("BottomText");
             Vector2 bottomTextPosition = new Vector2(bottomText.GetPosition().X,
                 cardGrid.GetPosition().Y + cardGrid.GetSize().Y - bottomText.GetSize().Y);
             bottomText.SetPosition(bottomTextPosition);
 
-            if (_lastPileType != PileType.Deck)
+            if (_lastPileType != PileType.Deck && _lastPileType != PileType.Draw && _lastPileType != PileType.Discard)
             {
                 return;
             }
@@ -231,21 +228,21 @@ public partial class MainFile : Node
                 _boldFontSize = bottomLabel.GetThemeFontSize(ThemeConstants.RichTextLabel.BoldFontSize);
             }
             
-            if (!__instance.HasNode(new NodePath(_containerName)))
+            if (!viewScreen.HasNode(new NodePath(_containerName)))
             {
                 Control container = CreateDeckStatsNode();
                 if (container == null)
                 {
                     Logger.Error("Null DeckStats container");
                     ShouldShowLogButton = true;
-                    ShowLogButton(__instance, null);
+                    ShowLogButton(viewScreen, null);
                     return;
                 }
                 PopulateDeckStatsLabel(container);
                 
                 RichTextLabel label = container.GetNode<RichTextLabel>(_labelName);
 
-                __instance.AddChild(container);
+                viewScreen.AddChild(container);
                 float padding = 100f;
                 Vector2 position = new Vector2(scrollContainer.GetPosition().X + padding,
                     cardGrid.GetPosition().Y + cardGrid.GetSize().Y - label.GetContentHeight());
@@ -265,9 +262,25 @@ public partial class MainFile : Node
                 bottomText.SetPosition(bottomTextPosition);
                 if (ShouldShowLogButton)
                 {
-                    ShowLogButton(__instance, container);
+                    ShowLogButton(viewScreen, container);
                 }
             }
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(NDeckViewScreen))]
+        [HarmonyPatch("DisplayCards")]
+        private static void AfterDeckScreenDisplayCards(NDeckViewScreen __instance)
+        {
+            ShowDeckStats(__instance);
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(NCardPileScreen))]
+        [HarmonyPatch("OnPileContentsChanged")]
+        private static void AfterCardPileContentsChanged(NCardPileScreen __instance)
+        {
+            ShowDeckStats(__instance);
         }
     }
 }
