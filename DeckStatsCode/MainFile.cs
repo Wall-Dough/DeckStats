@@ -3,6 +3,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.DevConsole.ConsoleCommands;
 using MegaCrit.Sts2.Core.Entities.Cards;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
@@ -108,7 +109,7 @@ public partial class MainFile : Node
             DeckStats.CalculateDeckStats(pileType, cardsToDisplay);
         }
 
-        private static Control CreateDeckStatsNode()
+        private static Control CreateDeckStatsNode(Control viewScreen)
         {
             PanelContainer container = new PanelContainer();
             container.SetName(_containerName);
@@ -132,13 +133,32 @@ public partial class MainFile : Node
                 ShouldShowLogButton = true;
             }
             label.SetAutowrapMode(TextServer.AutowrapMode.Off);
-            container.AddChild(label);
+            VBoxContainer vContainer = new();
+            Button toggleButton = new();
+            toggleButton.Text = "Toggle stats";
+            toggleButton.Pressed += () =>
+            {
+                label.Visible = !label.Visible;
+                ResetBottomTextPosition(viewScreen);
+                UpdateDeckStatsPosition(viewScreen);
+            };
+            vContainer.AddChildSafely(toggleButton);
+            vContainer.AddChildSafely(label);
+            container.AddChildSafely(vContainer);
             return container;
         }
 
         private static void PopulateDeckStatsLabel(Control container)
         {
-            RichTextLabel label = container.GetNode<RichTextLabel>(_labelName);
+            RichTextLabel label;
+            if (container.HasNode(new NodePath(_labelName)))
+            {
+                label = container.GetNode<RichTextLabel>(_labelName);
+            }
+            else
+            {
+                label = container.GetChild(0).GetNode<RichTextLabel>(_labelName);
+            }
             if (label == null)
             {
                 Logger.Error("No deck stats label found");
@@ -205,15 +225,70 @@ public partial class MainFile : Node
             }
         }
 
-        private static void ShowDeckStats(Control viewScreen)
+        private static void ResetBottomTextPosition(Control viewScreen)
         {
             Control cardGrid = viewScreen.GetNode<Control>("CardGrid");
-            Control scrollContainer = cardGrid.GetNode<Control>("ScrollContainer");
             Control bottomText = viewScreen.GetNode<Control>("BottomText");
             Vector2 bottomTextPosition = new Vector2(bottomText.GetPosition().X,
                 cardGrid.GetPosition().Y + cardGrid.GetSize().Y - bottomText.GetSize().Y);
             bottomText.SetPosition(bottomTextPosition);
+        }
 
+        private static void UpdateDeckStatsPosition(Control viewScreen)
+        {
+            float containerWidth = 300;
+            if (_cardSize == null)
+            {
+                Logger.Warn("Null DeckStats card size");
+                ShouldShowLogButton = true;
+            }
+            else
+            {
+                containerWidth = _cardSize.Value.X;
+            }
+            Control cardGrid = viewScreen.GetNode<Control>("CardGrid");
+            Control scrollContainer = cardGrid.GetNode<Control>("ScrollContainer");
+            Control bottomText = viewScreen.GetNode<Control>("BottomText");
+            Control container = GetContainerNode(viewScreen);
+            RichTextLabel label = GetLabelNode(viewScreen);
+            float padding = 100f;
+            Control button = (Control)container.GetChild(0).GetChild(0);
+            float containerHeight = button.GetSize().Y + 10;
+            if (label.Visible)
+            {
+                containerHeight += label.GetContentHeight();
+            }
+            Vector2 position = new Vector2(scrollContainer.GetPosition().X + padding,
+                cardGrid.GetPosition().Y + cardGrid.GetSize().Y - containerHeight);
+            container.SetPosition(position);
+            container.SetSize(new Vector2(containerWidth, containerHeight));
+            Vector2 bottomTextPosition = new Vector2(bottomText.GetPosition().X, position.Y - bottomText.GetSize().Y - 10);
+            bottomText.SetPosition(bottomTextPosition);
+        }
+
+        private static Control GetContainerNode(Control viewScreen)
+        {
+            Control container = viewScreen.GetNode<Control>(_containerName);
+            return container;
+        }
+
+        private static RichTextLabel GetLabelNode(Control viewScreen)
+        {
+            Control container = GetContainerNode(viewScreen);
+            RichTextLabel label;
+            if (container.HasNode(new NodePath(_labelName)))
+            {
+                return container.GetNode<RichTextLabel>(_labelName);
+            }
+            else
+            {
+                return container.GetChild(0).GetNode<RichTextLabel>(_labelName);
+            }
+        }
+
+        private static void ShowDeckStats(Control viewScreen)
+        {
+            ResetBottomTextPosition(viewScreen);
             if (_lastPileType != PileType.Deck && _lastPileType != PileType.Draw && _lastPileType != PileType.Discard)
             {
                 return;
@@ -221,6 +296,7 @@ public partial class MainFile : Node
             
             if (_regularFont == null || _boldFont == null)
             {
+                Control bottomText = viewScreen.GetNode<Control>("BottomText");
                 MegaRichTextLabel bottomLabel = bottomText.GetNode<MegaRichTextLabel>("MarginContainer/BottomLabel");
                 _regularFont = bottomLabel.GetThemeFont(ThemeConstants.RichTextLabel.NormalFont);
                 _boldFont = bottomLabel.GetThemeFont(ThemeConstants.RichTextLabel.BoldFont);
@@ -230,7 +306,7 @@ public partial class MainFile : Node
             
             if (!viewScreen.HasNode(new NodePath(_containerName)))
             {
-                Control container = CreateDeckStatsNode();
+                Control container = CreateDeckStatsNode(viewScreen);
                 if (container == null)
                 {
                     Logger.Error("Null DeckStats container");
@@ -239,27 +315,11 @@ public partial class MainFile : Node
                     return;
                 }
                 PopulateDeckStatsLabel(container);
-                
-                RichTextLabel label = container.GetNode<RichTextLabel>(_labelName);
 
                 viewScreen.AddChild(container);
-                float padding = 100f;
-                Vector2 position = new Vector2(scrollContainer.GetPosition().X + padding,
-                    cardGrid.GetPosition().Y + cardGrid.GetSize().Y - label.GetContentHeight());
-                float containerWidth = 300;
-                if (_cardSize == null)
-                {
-                    Logger.Warn("Null DeckStats card size");
-                    ShouldShowLogButton = true;
-                }
-                else
-                {
-                    containerWidth = _cardSize.Value.X;
-                }
-                container.SetPosition(position);
-                container.SetSize(new Vector2(containerWidth, label.GetContentHeight()));
-                bottomTextPosition = new Vector2(bottomText.GetPosition().X, position.Y - bottomText.GetSize().Y - 10);
-                bottomText.SetPosition(bottomTextPosition);
+                
+                UpdateDeckStatsPosition(viewScreen);
+                
                 if (ShouldShowLogButton)
                 {
                     ShowLogButton(viewScreen, container);
