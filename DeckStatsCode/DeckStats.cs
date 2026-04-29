@@ -46,7 +46,7 @@ public static class DeckStats
     public static string[][] currentColumns = COLUMNS;
     
     public static Hashtable showStats = new();
-    public static Hashtable statValues = new();
+    public static Hashtable statValuesByPileType = new();
 
     public static void LoadConfig(bool forceLoad = false)
     {
@@ -118,8 +118,9 @@ public static class DeckStats
         return column[rowNum];
     }
 
-    public static int GetStatValue(string statName)
+    public static int GetStatValue(PileType pileType, string statName)
     {
+        Hashtable statValues = GetStatValuesForPile(pileType);
         if (statValues.ContainsKey(statName))
         {
             object? value = statValues[statName];
@@ -159,8 +160,21 @@ public static class DeckStats
         return maxLength;
     }
 
-    public static void CalculateDeckStats(IReadOnlyList<CardModel> cards)
+    private static Hashtable GetStatValuesForPile(PileType pileType)
     {
+        if (statValuesByPileType.ContainsKey(pileType))
+        {
+            return (Hashtable) statValuesByPileType[pileType];
+        }
+        Hashtable statValues = new();
+        statValuesByPileType[pileType] = statValues;
+        return statValues;
+    }
+
+    public static void CalculateDeckStats(PileType pileType, IReadOnlyList<CardModel> cards)
+    {
+        Hashtable statValues = GetStatValuesForPile(pileType);
+
         statValues.Clear();
         if (cards.Count == 0)
         {
@@ -272,8 +286,9 @@ public static class DeckStats
         statValues.Add(ETHEREAL, numEthereal);
     }
 
-    public static int GetTotalCardCount()
+    public static int GetTotalCardCount(PileType pileType)
     {
+        Hashtable statValues = GetStatValuesForPile(pileType);
         if (statValues.ContainsKey(TOTAL))
         {
             object? value = statValues[TOTAL];

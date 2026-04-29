@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;
@@ -6,7 +5,6 @@ using MegaCrit.Sts2.Core.DevConsole.ConsoleCommands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardLibrary;
@@ -103,12 +101,8 @@ public partial class MainFile : Node
         {
             ShouldShowLogButton = false;
             _lastPileType = pileType;
-            if (pileType != PileType.Deck)
-            {
-                return;
-            }
             
-            DeckStats.CalculateDeckStats(cardsToDisplay);
+            DeckStats.CalculateDeckStats(pileType, cardsToDisplay);
         }
 
         private static Control CreateDeckStatsNode()
@@ -148,6 +142,13 @@ public partial class MainFile : Node
                 ShouldShowLogButton = true;
                 return;
             }
+            if (_lastPileType == null)
+            {
+                Logger.Error("Null last pile type");
+                ShouldShowLogButton = true;
+                return;
+            }
+            PileType pileType = (PileType) _lastPileType;
 
             DeckStats.LoadConfig();
 
@@ -157,13 +158,13 @@ public partial class MainFile : Node
             int tableHeight = DeckStats.GetStatTableHeight();
             label.PushTable(tableWidth * 3);
             Rect2 cellPadding = new Rect2(10, 0, 10, 0);
-            int totalCards = DeckStats.GetTotalCardCount();
+            int totalCards = DeckStats.GetTotalCardCount(pileType);
             for (int rowNum = 0; rowNum < tableHeight; rowNum++)
             {
                 for (int colNum = 0; colNum < tableWidth; colNum++)
                 {
                     string statName = DeckStats.GetStatTableCell(rowNum, colNum);
-                    int statValue = DeckStats.GetStatValue(statName);
+                    int statValue = DeckStats.GetStatValue(pileType, statName);
                     if (statName == DeckStats.NONE || statValue < 0)
                     {
                         for (int i = 0; i < 3; i++)
