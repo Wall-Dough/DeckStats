@@ -255,11 +255,11 @@ public static class DeckStats
             try
             {
                 int secondCycleCount = 1;
-                if (card.CanonicalKeywords.Contains(CardKeyword.Ethereal) && card.Type == CardType.Curse)
+                if (card.Keywords.Contains(CardKeyword.Ethereal) && card.Type == CardType.Curse)
                 {
                     secondCycleCount = 0;
                 }
-                if (card.CanonicalKeywords.Contains(CardKeyword.Exhaust))
+                if (card.Keywords.Contains(CardKeyword.Exhaust))
                 {
                     secondCycleCount = 0;
                 }
@@ -342,7 +342,7 @@ public static class DeckStats
                     numCardDraw[1] += secondCycleCount;
                 }
 
-                if (card.CanonicalKeywords.Contains(CardKeyword.Ethereal))
+                if (card.Keywords.Contains(CardKeyword.Ethereal))
                 {
                     numEthereal[0]++;
                     numEthereal[1] += secondCycleCount;
