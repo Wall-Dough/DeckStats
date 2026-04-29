@@ -175,6 +175,27 @@ public partial class MainFile : Node
             CheckBox secondCycleCheckbox = new();
             secondCycleCheckbox.SetName(_secondCycleToggleName);
             secondCycleCheckbox.SetText("Second cycle");
+            if (_lastPileType != null)
+            {
+                secondCycleCheckbox.SetPressed(DeckStats.IsSecondCycleToggled((PileType)_lastPileType));
+            }
+            else
+            {
+                Logger.Error("Null last pile type");
+                ShouldShowLogButton = true;
+            }
+            secondCycleCheckbox.Pressed += () =>
+            {
+                if (_lastPileType != null)
+                {
+                    DeckStats.SetSecondCycleToggled((PileType) _lastPileType, secondCycleCheckbox.IsPressed());
+                }
+                else
+                {
+                    Logger.Error("Null last pile type");
+                    ShouldShowLogButton = true;
+                }
+            };
             hBoxContainer.AddChildSafely(secondCycleCheckbox);
             hBoxContainer.SetHSizeFlags(Control.SizeFlags.ShrinkEnd);
             hBoxContainer.SetVSizeFlags(Control.SizeFlags.ShrinkEnd);

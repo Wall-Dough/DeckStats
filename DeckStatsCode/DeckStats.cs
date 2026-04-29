@@ -48,6 +48,7 @@ public static class DeckStats
     public static Hashtable showStats = new();
     public static Hashtable statValuesByPileType = new();
     private static Hashtable _deckStatsToggled = new();
+    private static Hashtable _secondCycleToggled = new();
 
     public static void LoadConfig(bool forceLoad = false)
     {
@@ -188,6 +189,20 @@ public static class DeckStats
         _deckStatsToggled[pileType] = toggled;
 
         return toggled;
+    }
+
+    public static bool IsSecondCycleToggled(PileType pileType)
+    {
+        if (!_secondCycleToggled.ContainsKey(pileType))
+        {
+            _secondCycleToggled[pileType] = false;
+        }
+        return (bool) _secondCycleToggled[pileType];
+    }
+
+    public static void SetSecondCycleToggled(PileType pileType, bool toggled)
+    {
+        _secondCycleToggled[pileType] = toggled;
     }
 
     public static void SetDeckStatsToggled(PileType pileType, bool toggled)
