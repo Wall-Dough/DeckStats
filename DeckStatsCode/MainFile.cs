@@ -133,12 +133,30 @@ public partial class MainFile : Node
                 ShouldShowLogButton = true;
             }
             label.SetAutowrapMode(TextServer.AutowrapMode.Off);
+            if (_lastPileType != null)
+            {
+                label.Visible = DeckStats.IsDeckStatsToggled((PileType) _lastPileType);
+            }
+            else
+            {
+                Logger.Error("Null last pile type");
+                ShouldShowLogButton = true;
+            }
             VBoxContainer vContainer = new();
             Button toggleButton = new();
             toggleButton.Text = "Toggle stats";
             toggleButton.Pressed += () =>
             {
                 label.Visible = !label.Visible;
+                if (_lastPileType != null)
+                {
+                    DeckStats.SetDeckStatsToggled((PileType) _lastPileType, label.Visible);
+                }
+                else
+                {
+                    Logger.Error("Null last pile type");
+                    ShouldShowLogButton = true;
+                }
                 ResetBottomTextPosition(viewScreen);
                 UpdateDeckStatsPosition(viewScreen);
             };

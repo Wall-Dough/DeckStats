@@ -47,6 +47,7 @@ public static class DeckStats
     
     public static Hashtable showStats = new();
     public static Hashtable statValuesByPileType = new();
+    private static Hashtable _deckStatsToggled = new();
 
     public static void LoadConfig(bool forceLoad = false)
     {
@@ -169,6 +170,29 @@ public static class DeckStats
         Hashtable statValues = new();
         statValuesByPileType[pileType] = statValues;
         return statValues;
+    }
+
+    public static bool IsDeckStatsToggled(PileType pileType)
+    {
+        if (_deckStatsToggled.ContainsKey(pileType))
+        {
+            return (bool) _deckStatsToggled[pileType];
+        }
+
+        bool toggled = false;
+        if (pileType == PileType.Deck || pileType == PileType.Draw)
+        {
+            toggled = true;
+        }
+
+        _deckStatsToggled[pileType] = toggled;
+
+        return toggled;
+    }
+
+    public static void SetDeckStatsToggled(PileType pileType, bool toggled)
+    {
+        _deckStatsToggled[pileType] = toggled;
     }
 
     public static void CalculateDeckStats(PileType pileType, IReadOnlyList<CardModel> cards)
