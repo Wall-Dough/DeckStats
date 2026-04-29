@@ -360,7 +360,6 @@ public partial class MainFile : Node
                 
                 UpdateDeckStatsPosition(viewScreen);
 
-                ShouldShowLogButton = true;
                 if (ShouldShowLogButton)
                 {
                     ShowLogButton(viewScreen, container);
