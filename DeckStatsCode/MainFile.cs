@@ -139,9 +139,12 @@ public partial class MainFile : Node
                 ShouldShowLogButton = true;
             }
             label.SetAutowrapMode(TextServer.AutowrapMode.Off);
+            HBoxContainer hBoxContainer = new();
+            hBoxContainer.SetName(_controlsName);
             if (_lastPileType != null)
             {
                 label.Visible = DeckStats.IsDeckStatsToggled((PileType) _lastPileType);
+                hBoxContainer.Visible = label.Visible;
             }
             else
             {
@@ -154,6 +157,7 @@ public partial class MainFile : Node
             toggleButton.Pressed += () =>
             {
                 label.Visible = !label.Visible;
+                hBoxContainer.Visible = label.Visible;
                 if (_lastPileType != null)
                 {
                     DeckStats.SetDeckStatsToggled((PileType) _lastPileType, label.Visible);
@@ -169,8 +173,6 @@ public partial class MainFile : Node
             vContainer.AddChildSafely(toggleButton);
             vContainer.AddChildSafely(label);
             container.AddChildSafely(vContainer);
-            HBoxContainer hBoxContainer = new();
-            hBoxContainer.SetName(_controlsName);
             CheckBox secondCycleCheckbox = new();
             secondCycleCheckbox.SetName(_secondCycleToggleName);
             secondCycleCheckbox.SetText("Second cycle");
