@@ -144,7 +144,7 @@ public partial class MainFile : Node
             }
             VBoxContainer vContainer = new();
             Button toggleButton = new();
-            toggleButton.Text = "Toggle stats";
+            toggleButton.Text = "Deck Stats";
             toggleButton.Pressed += () =>
             {
                 label.Visible = !label.Visible;
