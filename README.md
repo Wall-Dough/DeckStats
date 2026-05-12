@@ -19,7 +19,6 @@ Currently, the stats are statically arranged in this way. I would love to allow 
 ## ModConfig support
 
 I haven't tested it in a few patches but there is loose [ModConfig](https://www.nexusmods.com/slaythespire2/mods/27) support, all of the stats can be toggled on or off. Though the mod still works if you do not have ModConfig installed.
-test
 
 ## "Second Cycle" Stats
 
