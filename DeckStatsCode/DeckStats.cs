@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Cards;
 using MegaCrit.Sts2.Core.Models.Characters;
 
 namespace DeckStats.DeckStatsCode;
@@ -9,6 +10,7 @@ namespace DeckStats.DeckStatsCode;
 public static class DeckStats
 {
     private static string DISCARD_PATTERN = "[Dd]iscard(?! Pile)(?!ed)";
+    private static string EXHAUST_PATTERN = "[Ee]xhaust(?! Pile)(?!ed)";
 
     private static bool _configLoaded = false;
     public static string NONE = "(None)";
@@ -28,6 +30,7 @@ public static class DeckStats
     public static string ETHEREAL = "Ethereal";
     public static string DISCARD = "Discard";
     public static string SLY = "Sly";
+    public static string EXHAUST = "Exhaust";
     private static CharacterModel? _character = null;
 
     public static MegaCrit.Sts2.Core.Logging.Logger Logger = MainFile.Logger;
@@ -38,7 +41,7 @@ public static class DeckStats
         TOTAL, ATTACKS, SKILLS, POWERS, CURSES, QUESTS,
         SINGLE_TARGET, AOE, RANDOM_ENEMY,
         BLOCK, WEAK, VULNERABLE, CARD_DRAW, ETHEREAL,
-        DISCARD, SLY
+        DISCARD, SLY, EXHAUST
     ];
 
     public static string[][] COLUMNS =
@@ -50,7 +53,7 @@ public static class DeckStats
 
     public static string[][] CHARACTER_COLUMNS =
     [
-        [VULNERABLE], // The Ironclad
+        [VULNERABLE, EXHAUST], // The Ironclad
         [WEAK, DISCARD, SLY], // The Silent
         [WEAK, VULNERABLE], // The Regent (star gain, star spend)
         [ETHEREAL], // The Necrobinder
@@ -361,6 +364,7 @@ public static class DeckStats
         int[] numEthereal = [0, 0];
         int[] numDiscard = [0, 0];
         int[] numSly = [0, 0];
+        int[] numExhaust = [0, 0];
         foreach (CardModel card in cards)
         {
             try
@@ -470,6 +474,12 @@ public static class DeckStats
                 {
                     numDiscard[0]++;
                     numDiscard[1] += secondCycleCount;
+                }
+
+                if (card.Keywords.Contains(CardKeyword.Exhaust) || Regex.IsMatch(rawDescription, EXHAUST_PATTERN))
+                {
+                    numExhaust[0]++;
+                    numExhaust[1] += secondCycleCount;
                 }
             }
             catch (Exception e)
