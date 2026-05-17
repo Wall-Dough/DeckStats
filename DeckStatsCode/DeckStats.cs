@@ -1,14 +1,14 @@
 ﻿using System.Collections;
-using HarmonyLib;
-using MegaCrit.Sts2.Core.DevConsole.ConsoleCommands;
+using System.Text.RegularExpressions;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Models.Cards;
 
 namespace DeckStats.DeckStatsCode;
 
 public static class DeckStats
 {
+    private static string DISCARD_PATTERN = "[Dd]iscard(?! Pile)(?!ed)";
+
     private static bool _configLoaded = false;
     public static string NONE = "(None)";
     public static string TOTAL = "Total";
@@ -25,6 +25,7 @@ public static class DeckStats
     public static string VULNERABLE = "Vulnerable";
     public static string CARD_DRAW = "Card_Draw";
     public static string ETHEREAL = "Ethereal";
+    public static string DISCARD = "Discard";
 
     public static MegaCrit.Sts2.Core.Logging.Logger Logger = MainFile.Logger;
 
@@ -33,14 +34,16 @@ public static class DeckStats
         NONE,
         TOTAL, ATTACKS, SKILLS, POWERS, CURSES, QUESTS,
         SINGLE_TARGET, AOE, RANDOM_ENEMY,
-        BLOCK, WEAK, VULNERABLE, CARD_DRAW, ETHEREAL
+        BLOCK, WEAK, VULNERABLE, CARD_DRAW, ETHEREAL,
+        DISCARD
     ];
 
     public static string[][] COLUMNS =
     [
         [TOTAL, ATTACKS,       SKILLS, POWERS,       CURSES,    QUESTS],
         [NONE,  SINGLE_TARGET, AOE,    RANDOM_ENEMY],
-        [NONE,  BLOCK,         WEAK,   VULNERABLE,   CARD_DRAW, ETHEREAL]
+        [NONE,  BLOCK,         WEAK,   VULNERABLE,   CARD_DRAW, ETHEREAL],
+        [NONE,  DISCARD]
     ];
 
     public static string[][] currentColumns = COLUMNS;
@@ -250,6 +253,7 @@ public static class DeckStats
         int[] numVulnerable = [0, 0];
         int[] numCardDraw = [0, 0];
         int[] numEthereal = [0, 0];
+        int[] numDiscard = [0, 0];
         foreach (CardModel card in cards)
         {
             try
@@ -347,6 +351,13 @@ public static class DeckStats
                     numEthereal[0]++;
                     numEthereal[1] += secondCycleCount;
                 }
+
+                string rawDescription = card.Description.GetRawText();
+                if (Regex.IsMatch(rawDescription, DISCARD_PATTERN))
+                {
+                    numDiscard[0]++;
+                    numDiscard[1] += secondCycleCount;
+                }
             }
             catch (Exception e)
             {
@@ -369,6 +380,7 @@ public static class DeckStats
         statValues.Add(VULNERABLE, numVulnerable);
         statValues.Add(CARD_DRAW, numCardDraw);
         statValues.Add(ETHEREAL, numEthereal);
+        statValues.Add(DISCARD, numDiscard);
     }
 
     public static int GetTotalCardCount(PileType pileType)
