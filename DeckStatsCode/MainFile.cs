@@ -6,6 +6,8 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Characters;
+using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardLibrary;
@@ -247,7 +249,16 @@ public partial class MainFile : Node
                     int statValue = DeckStats.GetStatValue(pileType, statName);
                     if (statName == DeckStats.NONE || statValue < 0)
                     {
-                        for (int i = 0; i < 3; i++)
+                        int numEmpties = 3;
+                        if (statName != DeckStats.NONE)
+                        {
+                            numEmpties = 2;
+                            label.PushCell();
+                            label.SetCellPadding(cellPadding);
+                            label.AppendText(statName);
+                            label.Pop();
+                        }
+                        for (int i = 0; i < numEmpties; i++)
                         {
                             label.PushCell();
                             label.SetCellPadding(cellPadding);

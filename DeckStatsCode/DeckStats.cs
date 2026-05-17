@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Characters;
 
 namespace DeckStats.DeckStatsCode;
 
@@ -27,6 +28,7 @@ public static class DeckStats
     public static string ETHEREAL = "Ethereal";
     public static string DISCARD = "Discard";
     public static string SLY = "Sly";
+    private static CharacterModel? _character = null;
 
     public static MegaCrit.Sts2.Core.Logging.Logger Logger = MainFile.Logger;
 
@@ -43,9 +45,19 @@ public static class DeckStats
     [
         [TOTAL, ATTACKS,       SKILLS, POWERS,       CURSES,    QUESTS],
         [NONE,  SINGLE_TARGET, AOE,    RANDOM_ENEMY],
-        [NONE,  BLOCK,         WEAK,   VULNERABLE,   CARD_DRAW, ETHEREAL],
-        [NONE,  DISCARD, SLY]
+        [NONE,  BLOCK,         WEAK,   VULNERABLE,   CARD_DRAW]
     ];
+
+    public static string[][] CHARACTER_COLUMNS =
+    [
+        [VULNERABLE], // The Ironclad
+        [WEAK, DISCARD, SLY], // The Silent
+        [WEAK, VULNERABLE], // The Regent (star gain, star spend)
+        [ETHEREAL], // The Necrobinder
+        [] // The Defect
+    ];
+
+    private static string[]? _characterColumn = null;
 
     public static string[][] currentColumns = COLUMNS;
     
@@ -88,6 +100,66 @@ public static class DeckStats
         return !showStats.ContainsKey(statName) || showStats[statName] is true;
     }
 
+    public static void SetCharacter(CharacterModel? character)
+    {
+        if (_character == character)
+        {
+            return;
+        }
+        if (character == null)
+        {
+            Logger.Info("Set null character");
+        }
+        else
+        {
+            Logger.Info($"Setting character {character.Title.GetRawText()}");
+        }
+        _character = character;
+        _characterColumn = null;
+        if (_character == null)
+        {
+            return;
+        }
+        if (_character is Ironclad)
+        {
+            _characterColumn = CHARACTER_COLUMNS[0];
+        }
+        else if (_character is Silent)
+        {
+            _characterColumn = CHARACTER_COLUMNS[1];
+        }
+        else if (_character is Regent)
+        {
+            _characterColumn = CHARACTER_COLUMNS[2];
+        }
+        else if (_character is Necrobinder)
+        {
+            _characterColumn = CHARACTER_COLUMNS[3];
+        }
+        else if (_character is Defect)
+        {
+            _characterColumn = CHARACTER_COLUMNS[4];
+        }
+
+        if (_characterColumn == null)
+        {
+            Logger.Info("Null character column");
+        }
+        else
+        {
+            Logger.Info($"Character column: {string.Join(", ", _characterColumn)}");
+        }
+    }
+
+    public static string[]? GetCharacterColumn()
+    {
+        if (_character == null)
+        {
+            return null;
+        }
+        return _characterColumn;
+    }
+
     public static void UpdateColumns()
     {
         string[][] newColumns = new string[COLUMNS.GetUpperBound(0) + 1][];
@@ -110,11 +182,37 @@ public static class DeckStats
         currentColumns = newColumns;
     }
 
-    public static string GetStatTableCell(int rowNum, int colNum)
+    public static string GetCharacterColumnCell(int rowNum)
     {
-        if (colNum < currentColumns.GetLowerBound(0) || colNum > currentColumns.GetUpperBound(0))
+        if (_character == null)
         {
             return NONE;
+        }
+        if (_characterColumn == null || _characterColumn.GetUpperBound(0) == 0)
+        {
+            return NONE;
+        }
+        if (rowNum == 0)
+        {
+            return _character.Title.GetRawText();
+        }
+        rowNum -= 1;
+        if (rowNum > _characterColumn.GetUpperBound(0))
+        {
+            return NONE;
+        }
+        return _characterColumn[rowNum];
+    }
+
+    public static string GetStatTableCell(int rowNum, int colNum)
+    {
+        if (colNum < currentColumns.GetLowerBound(0))
+        {
+            return NONE;
+        }
+        if (colNum > currentColumns.GetUpperBound(0))
+        {
+            return GetCharacterColumnCell(rowNum);
         }
         string[] column = currentColumns[colNum];
         if (rowNum < column.GetLowerBound(0) || rowNum > column.GetUpperBound(0))
@@ -157,7 +255,9 @@ public static class DeckStats
 
     public static int GetStatTableWidth()
     {
-        return currentColumns.GetUpperBound(0) + 1;
+        string[]? characterColumn = GetCharacterColumn();
+        int numCharacterColumns = characterColumn != null ? 1 : 0;
+        return currentColumns.GetUpperBound(0) + numCharacterColumns + 1;
     }
 
     public static int GetStatTableHeight()
@@ -179,6 +279,10 @@ public static class DeckStats
             {
                 maxLength = column.Length;
             }
+        }
+        if (_characterColumn != null && _characterColumn.Length + 1 > maxLength)
+        {
+            maxLength = _characterColumn.Length + 1;
         }
         return maxLength;
     }
@@ -240,6 +344,7 @@ public static class DeckStats
         {
             return;
         }
+        SetCharacter(cards.First().Owner.Character);
         int[] totalCards = [0, 0];
         int[] numAttacks = [0, 0];
         int[] numSingleTarget = [0, 0];
