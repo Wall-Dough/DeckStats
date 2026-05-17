@@ -26,6 +26,7 @@ public static class DeckStats
     public static string CARD_DRAW = "Card_Draw";
     public static string ETHEREAL = "Ethereal";
     public static string DISCARD = "Discard";
+    public static string SLY = "Sly";
 
     public static MegaCrit.Sts2.Core.Logging.Logger Logger = MainFile.Logger;
 
@@ -35,7 +36,7 @@ public static class DeckStats
         TOTAL, ATTACKS, SKILLS, POWERS, CURSES, QUESTS,
         SINGLE_TARGET, AOE, RANDOM_ENEMY,
         BLOCK, WEAK, VULNERABLE, CARD_DRAW, ETHEREAL,
-        DISCARD
+        DISCARD, SLY
     ];
 
     public static string[][] COLUMNS =
@@ -43,7 +44,7 @@ public static class DeckStats
         [TOTAL, ATTACKS,       SKILLS, POWERS,       CURSES,    QUESTS],
         [NONE,  SINGLE_TARGET, AOE,    RANDOM_ENEMY],
         [NONE,  BLOCK,         WEAK,   VULNERABLE,   CARD_DRAW, ETHEREAL],
-        [NONE,  DISCARD]
+        [NONE,  DISCARD, SLY]
     ];
 
     public static string[][] currentColumns = COLUMNS;
@@ -254,6 +255,7 @@ public static class DeckStats
         int[] numCardDraw = [0, 0];
         int[] numEthereal = [0, 0];
         int[] numDiscard = [0, 0];
+        int[] numSly = [0, 0];
         foreach (CardModel card in cards)
         {
             try
@@ -352,6 +354,12 @@ public static class DeckStats
                     numEthereal[1] += secondCycleCount;
                 }
 
+                if (card.Keywords.Contains(CardKeyword.Sly))
+                {
+                    numSly[0]++;
+                    numSly[1] += secondCycleCount;
+                }
+
                 string rawDescription = card.Description.GetRawText();
                 if (Regex.IsMatch(rawDescription, DISCARD_PATTERN))
                 {
@@ -381,6 +389,7 @@ public static class DeckStats
         statValues.Add(CARD_DRAW, numCardDraw);
         statValues.Add(ETHEREAL, numEthereal);
         statValues.Add(DISCARD, numDiscard);
+        statValues.Add(SLY, numSly);
     }
 
     public static int GetTotalCardCount(PileType pileType)
