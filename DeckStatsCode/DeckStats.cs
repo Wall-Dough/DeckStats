@@ -2,7 +2,6 @@
 using System.Text.RegularExpressions;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Models.Cards;
 using MegaCrit.Sts2.Core.Models.Characters;
 
 namespace DeckStats.DeckStatsCode;
@@ -11,6 +10,7 @@ public static class DeckStats
 {
     private static string DISCARD_PATTERN = "[Dd]iscard(?! Pile)(?!ed)";
     private static string EXHAUST_PATTERN = "[Ee]xhaust(?! Pile)(?!ed)";
+    private static string STAR_GAIN_PATTERN = "[Gg]ain {Stars:";
 
     private static bool _configLoaded = false;
     public static string NONE = "(None)";
@@ -31,6 +31,8 @@ public static class DeckStats
     public static string DISCARD = "Discard";
     public static string SLY = "Sly";
     public static string EXHAUST = "Exhaust";
+    public static string STAR_SPEND = "Star_Spend";
+    public static string STAR_GAIN = "Star_Gain";
     private static CharacterModel? _character = null;
 
     public static MegaCrit.Sts2.Core.Logging.Logger Logger = MainFile.Logger;
@@ -41,7 +43,7 @@ public static class DeckStats
         TOTAL, ATTACKS, SKILLS, POWERS, CURSES, QUESTS,
         SINGLE_TARGET, AOE, RANDOM_ENEMY,
         BLOCK, WEAK, VULNERABLE, CARD_DRAW, ETHEREAL,
-        DISCARD, SLY, EXHAUST
+        DISCARD, SLY, EXHAUST, STAR_SPEND, STAR_GAIN
     ];
 
     public static string[][] COLUMNS =
@@ -55,7 +57,7 @@ public static class DeckStats
     [
         [VULNERABLE, EXHAUST], // The Ironclad
         [WEAK, DISCARD, SLY], // The Silent
-        [WEAK, VULNERABLE], // The Regent (star gain, star spend)
+        [WEAK, VULNERABLE, STAR_SPEND, STAR_GAIN], // The Regent
         [ETHEREAL], // The Necrobinder
         [] // The Defect
     ];
@@ -365,6 +367,8 @@ public static class DeckStats
         int[] numDiscard = [0, 0];
         int[] numSly = [0, 0];
         int[] numExhaust = [0, 0];
+        int[] numStarSpend = [0, 0];
+        int[] numStarGain = [0, 0];
         foreach (CardModel card in cards)
         {
             try
@@ -481,6 +485,18 @@ public static class DeckStats
                     numExhaust[0]++;
                     numExhaust[1] += secondCycleCount;
                 }
+
+                if (card.BaseStarCost > 0 || card.HasStarCostX)
+                {
+                    numStarSpend[0]++;
+                    numStarSpend[1] += secondCycleCount;
+                }
+
+                if (Regex.IsMatch(rawDescription, STAR_GAIN_PATTERN))
+                {
+                    numStarGain[0]++;
+                    numStarGain[1] += secondCycleCount;
+                }
             }
             catch (Exception e)
             {
@@ -505,6 +521,8 @@ public static class DeckStats
         statValues.Add(ETHEREAL, numEthereal);
         statValues.Add(DISCARD, numDiscard);
         statValues.Add(SLY, numSly);
+        statValues.Add(STAR_SPEND, numStarSpend);
+        statValues.Add(STAR_GAIN, numStarGain);
     }
 
     public static int GetTotalCardCount(PileType pileType)
